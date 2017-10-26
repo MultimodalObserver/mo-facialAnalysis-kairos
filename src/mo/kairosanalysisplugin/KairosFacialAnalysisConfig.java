@@ -66,7 +66,6 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
     
     public KairosFacialAnalysisConfig(String name, KairosAnalyser analyser, File organizationLocation) {
         
-
         this.name = name;
         this.analyser = analyser;
         this.files =  new ArrayList<File>();
@@ -74,6 +73,7 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
         this.user = analyser.getUser();
         this.key = analyser.getKey();  
         this.organizationLocation = organizationLocation;
+
     }
     public KairosFacialAnalysisConfig(File organizationLocation) {
 
@@ -81,8 +81,12 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
         this.player = null;  
         this.organizationLocation = organizationLocation;
     }    
-    
 
+    public void setOrganizationLocation(File organizationLocation) {
+        this.organizationLocation = organizationLocation;
+    }
+    
+    
     @Override
     public String getId() {return this.name;}
 
@@ -154,6 +158,23 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
     @Override
     public void initIndividualAnalysis(Participant participant)  {
      
+                    for(int i = 0 ; i<10 ; i++){
+                        try {
+                            System.out.println(this.organizationLocation.getCanonicalPath().toString());
+                        } catch (IOException ex) {
+                            Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                System.out.println(this.organizationLocation.getParentFile().getPath());
+                System.out.println(this.organizationLocation.getParentFile().getParentFile().getPath());
+
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                }         
+        
+        
         System.out.println(this.organizationLocation.getPath()+"\\"+participant.folder);
         File dir =  new  File(this.organizationLocation.getPath()+"\\"+participant.folder);
         SendVideoWindow w = new SendVideoWindow(dir,participant,this.analyser);

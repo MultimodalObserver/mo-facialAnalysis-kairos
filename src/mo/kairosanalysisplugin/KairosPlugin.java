@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import mo.analysis.AnalysisProvider;
 import mo.analysis.NotesAnalysisConfig;
@@ -46,7 +47,8 @@ public class KairosPlugin implements AnalysisProvider{
 
     @Override
     public Configuration initNewConfiguration(ProjectOrganization organization) {
-
+   
+        
         
         KairosFacialConfigDialog d = new KairosFacialConfigDialog();
         boolean accepted = d.showDialog();
@@ -65,15 +67,21 @@ public class KairosPlugin implements AnalysisProvider{
 
     @Override
     public StagePlugin fromFile(File file) {
+        
+        File ol =  new File(file.getParentFile().getParentFile().getPath());        
         if (file.isFile()) {
             try {
+
                 KairosPlugin mc = new KairosPlugin();
                 XElement root = XIO.readUTF(new FileInputStream(file));
                 XElement[] pathsX = root.getElements("path");
                 for (XElement pathX : pathsX) {
                     String path = pathX.getString(); 
                     KairosFacialAnalysisConfig c = new KairosFacialAnalysisConfig (new File(path).getParentFile());
-                    Configuration config = c.fromFile(new File(file.getParentFile(), path));
+                                               c.setOrganizationLocation(ol);
+                  //  Configuration config = c.fromFile(new File(file.getParentFile(), path));
+                                      Configuration config = c.fromFile(new File(file.getParentFile(), path));
+                                      
                     if (config != null) {
                         mc.configs.add(config);
                     }
@@ -81,7 +89,7 @@ public class KairosPlugin implements AnalysisProvider{
                 return mc;
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, null, ex);
-            }
+            } 
         }
         return null;
     }
