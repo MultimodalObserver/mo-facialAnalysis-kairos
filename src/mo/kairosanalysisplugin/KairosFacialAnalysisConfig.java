@@ -157,24 +157,7 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
     
     @Override
     public void initIndividualAnalysis(Participant participant)  {
-     
-                    for(int i = 0 ; i<10 ; i++){
-                        try {
-                            System.out.println(this.organizationLocation.getCanonicalPath().toString());
-                        } catch (IOException ex) {
-                            Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                System.out.println(this.organizationLocation.getParentFile().getPath());
-                System.out.println(this.organizationLocation.getParentFile().getParentFile().getPath());
 
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ex) {
-                            Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                }         
-        
-        
         System.out.println(this.organizationLocation.getPath()+"\\"+participant.folder);
         File dir =  new  File(this.organizationLocation.getPath()+"\\"+participant.folder);
         SendVideoWindow w = new SendVideoWindow(dir,participant,this.analyser);
