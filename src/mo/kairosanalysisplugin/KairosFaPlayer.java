@@ -88,6 +88,7 @@ public class KairosFaPlayer implements Playable {
                     try {
                         DockableElement e = new DockableElement();
                         e.add(pan);
+                        
                         DockablesRegistry.getInstance().addAppWideDockable(e);
                     } catch (Exception ex) {
                         logger.log(Level.INFO, null, ex);

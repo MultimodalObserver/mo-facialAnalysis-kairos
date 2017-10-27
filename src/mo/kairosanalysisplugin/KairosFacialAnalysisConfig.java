@@ -38,7 +38,8 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
 
    String name;
    private final String[] creators = {"webcamcaptureplugin.WebcamRecorder",
-                                      "kairosPlugin.KairosAnalyser.video"};
+                                      "kairosPlugin.KairosAnalyser.video",
+                                      "mo.kairosanalysisplugin.KairosAnalyser.complete"};
    
    private FacialAnalyser analyser;
    private Double deafaultsensitivity ;
@@ -177,12 +178,31 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
     @Override
     public void startAnalysis() {
         
-      TimeStampsDialog t = new TimeStampsDialog();
+        TimeStampsDialog t = new TimeStampsDialog();
         t.setVisible(true);
         
-        File videoFile = files.get(0);
-        FacialAnalysis analysis = this.analyser.uploadVideo(videoFile);
+        File inputFile = files.get(0);
         
+        if(!inputFile.exists()){
+            JOptionPane.showMessageDialog(null,"El archivo no existe");        
+            return;        
+        }
+ 
+        if(inputFile.getName().endsWith(".json")){
+            
+            FacialAnalysis analysis = this.analyser.analysisFromFile(inputFile.getPath());
+            if(analysis==null){
+                JOptionPane.showMessageDialog(null,"Ha ocurrido un error con la lectura del archivo");                    
+                return;
+            }
+            else{
+                this.player = new KairosFaPlayer(analysis);
+            }
+            return;
+        }
+        
+        FacialAnalysis analysis = this.analyser.uploadVideo(inputFile);
+
         System.out.println(analysis.getStatus());
         
         if(analysis!=null){
@@ -196,17 +216,18 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
                 this.analyser.update(analysis);
             }
         }else{
-            JOptionPane.showMessageDialog(null,"Ha ocurrido un error al enviar el archivo");        
+            JOptionPane.showMessageDialog(null,"Ha ocurrido un error al enviar o procesar el archivo"); 
+            return;
         }
         
-        String name = videoFile.getName().substring(videoFile.getName().indexOf("."));
+        String outputFileName = inputFile.getName().substring(inputFile.getName().indexOf("."));
         
         this.player = new KairosFaPlayer(analysis);
         if(t.isAccepted()){
             for(Emotion e : analysis.getPerson(0).getEmotions()){
                 e.makeTimeStamps(t.getSensitivity());
-                e.timeStampsToFile(stageFolder.getPath()+"\\"+name+"_"+e.getName()+".txt");
-                FileDescriptorMaker.makeFileDescriptor(new File(stageFolder.getPath()+"\\"+videoFile+"_"+e.getName()+".txt"),
+                e.timeStampsToFile(stageFolder.getPath()+"\\"+outputFileName+"_"+e.getName()+".txt");
+                FileDescriptorMaker.makeFileDescriptor(new File(stageFolder.getPath()+"\\"+inputFile+"_"+e.getName()+".txt"),
                                                     "creator="+analyser.getClass().getName(),
                                                     "compatible=mo.analysis.NotesRecorder",
                                                     "captureFile=..\\" + analysis.getVideoName());
