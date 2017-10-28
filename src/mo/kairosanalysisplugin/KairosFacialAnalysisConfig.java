@@ -140,13 +140,11 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
             return config;
             
        } catch (FileNotFoundException ex) {
-           while(true){System.out.println("no encuentra el archivo");}
-           //Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
+           Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
        } catch (IOException ex) {
-           while(true){System.out.println("caga cuando lo lee");}
-           //Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
+           Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
        }   
-       // return null;
+        return null;
 
 
     }
@@ -230,7 +228,7 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
                 FileDescriptorMaker.makeFileDescriptor(new File(stageFolder.getPath()+"\\"+inputFile+"_"+e.getName()+".txt"),
                                                     "creator="+analyser.getClass().getName(),
                                                     "compatible=mo.analysis.NotesRecorder",
-                                                    "captureFile=..\\" + analysis.getVideoName());
+                                                    "captureFile="+this.organizationLocation.getPath()+"\\"+ this.participant.folder+ "\\capture\\"+ analysis.getVideoName());
             }
         }        
         

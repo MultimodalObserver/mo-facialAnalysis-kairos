@@ -5,11 +5,14 @@
  */
 package mo.kairosanalysisplugin;
 
+import facialAnalysisCore.Emotion;
 import facialAnalysisCore.FacialAnalysis;
 import facialAnalysisCore.Instant;
 import facialAnalysisCore.Person;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.MenuItem;
+import java.awt.PopupMenu;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,18 +42,15 @@ public class KairosFaDisplayPanel extends javax.swing.JPanel {
    private ValueMarker marker;
    private long offset;
    private ChartPanel chartPanel;
-   private XYSeriesCollection linesDatasetContainer;
-   private XYSeriesCollection areaDatasetContainer;
-   private XYSeries linesSeries[];
-   private XYSeries areaSeries[];
 
+   private XYSeries seriesArray[];
+   private XYSeriesCollection seriesContainer;
+   
    private ArrayList<JCheckBoxMenuItem> graficChecks;
     
     public JPanel getPanel(){
         return this;
     }
-    
-
     
     public KairosFaDisplayPanel(Person source, long offset) {
         initComponents();
@@ -60,12 +60,12 @@ public class KairosFaDisplayPanel extends javax.swing.JPanel {
         
         
         if(source != null){
-                       
-            linesSeries = new XYSeries[source.getEmotions().size()];
-            areaSeries = new XYSeries[source.getEmotions().size()];;     
+                                   
+            this.seriesArray = this.makeSeriesArray(source);
+            this.seriesContainer = this.makeDataset(seriesArray);
+            this.linesGrafic = this.makeLinesGrafic(seriesContainer);
+            this.areaGrafic = this.makeAreaGrafic(seriesContainer);
             
-            this.linesGrafic = this.makeLineGraficPerson(source);
-            this.areaGrafic = this.makeAreaGraficPerson(source);
             ChartPanel panel = new ChartPanel(this.linesGrafic); 
             this.chartPanel = panel;
             
@@ -97,6 +97,26 @@ public class KairosFaDisplayPanel extends javax.swing.JPanel {
                jcheck.addActionListener(new checkListenner(i));
                graficChecks.add(jcheck);          
            }
+           
+          this.graficsMenu.add(new javax.swing.JPopupMenu.Separator());
+          javax.swing.JMenuItem selectAll = new javax.swing.JMenuItem("Seleccionar todos");
+          javax.swing.JMenuItem desSelectAll = new javax.swing.JMenuItem("Quitar todos");
+          this.graficsMenu.add(selectAll);
+          this.graficsMenu.add(desSelectAll);
+                    
+          selectAll.addActionListener(new java.awt.event.ActionListener(){
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    selectAllActionPerformed(e);
+                }
+            });
+          
+          desSelectAll.addActionListener(new java.awt.event.ActionListener(){
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                   desSelectAllActionPerformed(e);
+                }
+            });          
            
            
         }else{
@@ -252,14 +272,32 @@ public class KairosFaDisplayPanel extends javax.swing.JPanel {
 
         
         if(!this.graficChecks.get(index).isSelected()){
-             this.linesDatasetContainer.removeSeries(this.linesSeries[index]);
-             this.areaDatasetContainer.removeSeries(this.linesSeries[index]);
+             this.seriesContainer.removeSeries(this.seriesArray[index]);
          }
          else{
-             this.linesDatasetContainer.addSeries(this.linesSeries[index]);
-             this.areaDatasetContainer.addSeries(this.linesSeries[index]);      
+             this.seriesContainer.addSeries(this.seriesArray[index]);
          }
     }                                                           
+    
+    private void selectAllActionPerformed(java.awt.event.ActionEvent evt) {                                                        
+        for(int i = 0 ; i<this.graficChecks.size(); i++){
+            if(!this.graficChecks.get(i).isSelected()){
+                this.seriesContainer.addSeries(this.seriesArray[i]);
+                this.graficChecks.get(i).setSelected(true);
+            }
+        }
+        
+    }
+    
+    private void desSelectAllActionPerformed(java.awt.event.ActionEvent evt) {                                                        
+        for(int i = 0 ; i<this.graficChecks.size(); i++){
+            if(this.graficChecks.get(i).isSelected()){
+                this.seriesContainer.removeSeries(this.seriesArray[i]);
+                this.graficChecks.get(i).setSelected(false);
+            }
+        }
+    }     
+    
     
     public void display(Instant instant){
         this.marker.setValue(instant.getTime());
@@ -273,42 +311,9 @@ public class KairosFaDisplayPanel extends javax.swing.JPanel {
         this.marker.setValue(value-offset);
     }
     
-   public JFreeChart makeLineGraficPerson(Person p){
+   public JFreeChart makeLinesGrafic(XYSeriesCollection dataset){
         
            JFreeChart grafic = null  ;
-           XYSeries series0 = new XYSeries(p.getEmotion(0).getName());
-           XYSeries series1 = new XYSeries(p.getEmotion(1).getName());
-           XYSeries series2 = new XYSeries(p.getEmotion(2).getName());
-           XYSeries series3 = new XYSeries(p.getEmotion(3).getName());
-           XYSeries series4 = new XYSeries(p.getEmotion(4).getName());
-           XYSeries series5 = new XYSeries(p.getEmotion(5).getName());
-           
-           this.linesSeries[0] = series0;
-           this.linesSeries[1] = series1;           
-           this.linesSeries[2] = series2;
-           this.linesSeries[3] = series3;
-           this.linesSeries[4] = series4;
-           this.linesSeries[5] = series5;           
-           
-           for(int i=0; i<p.getEmotion(0).getInstants().size();i++){   
-                series0.add(p.getEmotion(0).getInstants().get(i).getTime()-offset,p.getEmotion(0).getInstants().get(i).getValue());
-                series1.add(p.getEmotion(1).getInstants().get(i).getTime()-offset,p.getEmotion(1).getInstants().get(i).getValue());
-                series2.add(p.getEmotion(2).getInstants().get(i).getTime()-offset,p.getEmotion(2).getInstants().get(i).getValue());
-                series3.add(p.getEmotion(3).getInstants().get(i).getTime()-offset,p.getEmotion(3).getInstants().get(i).getValue());
-                series4.add(p.getEmotion(4).getInstants().get(i).getTime()-offset,p.getEmotion(4).getInstants().get(i).getValue());
-                series5.add(p.getEmotion(5).getInstants().get(i).getTime()-offset,p.getEmotion(5).getInstants().get(i).getValue());
-           }
-           
-           XYSeriesCollection dataset = new XYSeriesCollection();
-           linesDatasetContainer = dataset;
-
-           dataset.addSeries(series0);           
-           dataset.addSeries(series1);
-           dataset.addSeries(series2);
-           dataset.addSeries(series3);
-           dataset.addSeries(series4);
-           dataset.addSeries(series5);
-           
            grafic = ChartFactory.createXYLineChart("Emotions","","Nivel %", dataset);
            
            grafic.setAntiAlias(true);
@@ -316,55 +321,17 @@ public class KairosFaDisplayPanel extends javax.swing.JPanel {
            grafic.getPlot().setOutlineVisible(false);
            grafic.getPlot().setBackgroundPaint(Color.WHITE);
            grafic.setBorderVisible(false);
-                           grafic.getXYPlot().setDomainGridlinesVisible(false);
-                grafic.getXYPlot().setRangeGridlinePaint(Color.DARK_GRAY);
-                grafic.getXYPlot().getRangeAxis().setAxisLineVisible(false);
-                grafic.setTitle("");
-                
-               
-                
-          // grafic.getXYPlot().s
-                
+           grafic.getXYPlot().setDomainGridlinesVisible(false);
+           grafic.getXYPlot().setRangeGridlinePaint(Color.DARK_GRAY);
+           grafic.getXYPlot().getRangeAxis().setAxisLineVisible(false);
+           grafic.setTitle("");
+
            return grafic;       
     }
 
-   public JFreeChart makeAreaGraficPerson(Person p){
+   public JFreeChart makeAreaGrafic(XYSeriesCollection dataset){
         
-           JFreeChart grafic = null  ;
-           XYSeries series0 = new XYSeries(p.getEmotion(0).getName());
-           XYSeries series1 = new XYSeries(p.getEmotion(1).getName());
-           XYSeries series2 = new XYSeries(p.getEmotion(2).getName());
-           XYSeries series3 = new XYSeries(p.getEmotion(3).getName());
-           XYSeries series4 = new XYSeries(p.getEmotion(4).getName());
-           XYSeries series5 = new XYSeries(p.getEmotion(5).getName());
-           
-           this.areaSeries[0] = series0;
-           this.areaSeries[1] = series1;           
-           this.areaSeries[2] = series2;
-           this.areaSeries[3] = series3;
-           this.areaSeries[4] = series4;
-           this.areaSeries[5] = series5;
-           
-           for(int i=0; i<p.getEmotion(0).getInstants().size();i++){   
-                series0.add(p.getEmotion(0).getInstants().get(i).getTime()-offset,p.getEmotion(0).getInstants().get(i).getValue());
-                series1.add(p.getEmotion(1).getInstants().get(i).getTime()-offset,p.getEmotion(1).getInstants().get(i).getValue());
-                series2.add(p.getEmotion(2).getInstants().get(i).getTime()-offset,p.getEmotion(2).getInstants().get(i).getValue());
-                series3.add(p.getEmotion(3).getInstants().get(i).getTime()-offset,p.getEmotion(3).getInstants().get(i).getValue());
-                series4.add(p.getEmotion(4).getInstants().get(i).getTime()-offset,p.getEmotion(4).getInstants().get(i).getValue());
-                series5.add(p.getEmotion(5).getInstants().get(i).getTime()-offset,p.getEmotion(5).getInstants().get(i).getValue());
-           }
-           
-           XYSeriesCollection dataset = new XYSeriesCollection();
-            areaDatasetContainer= dataset;
-
-           dataset.addSeries(series0);           
-           dataset.addSeries(series1);
-           dataset.addSeries(series2);
-           dataset.addSeries(series3);
-           dataset.addSeries(series4);
-           dataset.addSeries(series5);
-           
-           grafic = ChartFactory.createXYAreaChart("Emotions","","Nivel %", dataset);
+           JFreeChart grafic = ChartFactory.createXYAreaChart("Emotions","","Nivel %", dataset);
 
            grafic.setAntiAlias(true);
            grafic.setBackgroundPaint(Color.WHITE);
@@ -376,13 +343,40 @@ public class KairosFaDisplayPanel extends javax.swing.JPanel {
                 grafic.getXYPlot().getRangeAxis().setAxisLineVisible(false);
                 grafic.setTitle("");
                 
-               
-                
-          // grafic.getXYPlot().s
-                
            return grafic;       
     }
    
+   public XYSeries[] makeSeriesArray(Person p){
+   
+       
+       int i=0;
+       XYSeries[] seriesArray = new XYSeries[p.getEmotions().size()];
+       for(Emotion e : p.getEmotions()){
+           seriesArray[i] = new XYSeries(p.getEmotion(i).getName());
+           i++;
+       }
+       
+       for(int j=0; j<p.getEmotion(0).getInstants().size();j++){   
+           
+           int k=0;
+           for(XYSeries series: seriesArray){
+               series.add(p.getEmotion(k).getInstants().get(j).getTime()-offset,p.getEmotion(k).getInstants().get(j).getValue());
+               k++;
+           }       
+       
+      }
+       return seriesArray;
+   }
+
+   
+  
+   public  XYSeriesCollection makeDataset(XYSeries[] seriesArray){
+       XYSeriesCollection dataset = new XYSeriesCollection();
+       for(XYSeries series: seriesArray ){
+           dataset.addSeries(series);
+       }
+       return dataset;
+    }
    
    
     // Variables declaration - do not modify//GEN-BEGIN:variables
