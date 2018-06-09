@@ -7,6 +7,8 @@ import facialAnalysisCore.Emotion;
 import facialAnalysisCore.FacialAnalyser;
 import facialAnalysisCore.FacialAnalysis;
 import facialAnalysisCore.FileDescriptorMaker;
+import facialAnalysisCore.SendVideoPanel;
+import faplayer.FacialAnalysisPlayer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 //import facialCore.FacialAnalyzer;
@@ -22,10 +24,13 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import static jdk.nashorn.internal.runtime.Debug.id;
 import mo.analysis.IndividualAnalysisConfiguration;
 import mo.analysis.NotesAnalysisConfig;
 import mo.analysis.PlayableAnalyzableConfiguration;
+import mo.core.ui.dockables.DockableElement;
+import mo.core.ui.dockables.DockablesRegistry;
 import mo.organization.Configuration;
 import mo.organization.Participant;
 import mo.organization.ProjectOrganization;
@@ -41,14 +46,14 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
                                       "kairosPlugin.KairosAnalyser.video",
                                       "mo.kairosanalysisplugin.KairosAnalyser.complete"};
    
+   private final String configReference = "mo.kairosanalysisplugin.KairosFacialAnalysisConfig";
+ 
    private FacialAnalyser analyser;
-   private Double deafaultsensitivity ;
-
    
    private File stageFolder;
    private Participant participant;
    private ArrayList<File> files;
-   private KairosFaPlayer player;
+   private FacialAnalysisPlayer player;
    
    private String user;
    private String key;
@@ -74,8 +79,8 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
         this.user = analyser.getUser();
         this.key = analyser.getKey();  
         this.organizationLocation = organizationLocation;
-
     }
+    
     public KairosFacialAnalysisConfig(File organizationLocation) {
 
         this.files =  new ArrayList<File>();
@@ -111,12 +116,12 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
             logger.log(Level.SEVERE, null, ex);
         }
 
-        return f;    }
+        return f;    
+    }
 
     @Override
     public Configuration fromFile(File file) {
         
-        String fileName = file.getName();
         String user, key , name;
         
         FileReader fr ; 
@@ -145,8 +150,6 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
            Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
        }   
         return null;
-
-
     }
     
     @Override
@@ -156,13 +159,31 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
     
     @Override
     public void initIndividualAnalysis(Participant participant)  {
-
-        System.out.println(this.organizationLocation.getPath()+"\\"+participant.folder);
-        File dir =  new  File(this.organizationLocation.getPath()+"\\"+participant.folder);
-        SendVideoWindow w = new SendVideoWindow(dir,participant,this.analyser);
+        
+        File dir =  new  File(this.organizationLocation ,participant.folder);
+       /* SendVideoWindow w = new SendVideoWindow(dir,participant,this.analyser);
         w.setVisible(true);
         w.toFront();
-        w.setAlwaysOnTop(true);
+        w.setAlwaysOnTop(true);*/
+       File analysisDir = new File(dir,"analysis");
+       
+        SendVideoPanel s = new SendVideoPanel(dir,analysisDir,this.analyser);
+        s.setConfigurationReference(configReference);
+        
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        DockableElement e = new DockableElement();
+                        e.add(s);
+                        
+                        DockablesRegistry.getInstance().addAppWideDockable(e);
+                       
+                    } catch (Exception ex) {
+                        logger.log(Level.INFO, null, ex);
+                    }
+                });        
+                    
+        
+        
         
     }
 
@@ -176,8 +197,8 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
     @Override
     public void startAnalysis() {
         
-        TimeStampsDialog t = new TimeStampsDialog();
-        t.setVisible(true);
+        /*TimeStampsDialog t = new TimeStampsDialog();
+        t.setVisible(true);*/
         
         File inputFile = files.get(0);
         
@@ -194,7 +215,7 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
                 return;
             }
             else{
-                this.player = new KairosFaPlayer(analysis);
+                this.player = new FacialAnalysisPlayer(analysis);
             }
             return;
         }
@@ -207,7 +228,7 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
             while(!analysis.getStatus().equals("Complete")){
                 System.out.println(analysis.getStatus());
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(2405);
                     } catch (InterruptedException ex) {
                     Logger.getLogger(KairosFacialAnalysisConfig.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -220,8 +241,8 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
         
         String outputFileName = inputFile.getName().substring(inputFile.getName().indexOf("."));
         
-        this.player = new KairosFaPlayer(analysis);
-        if(t.isAccepted()){
+        this.player = new FacialAnalysisPlayer(analysis);
+       /* if(t.isAccepted()){
             for(Emotion e : analysis.getPerson(0).getEmotions()){
                 e.makeTimeStamps(t.getSensitivity());
                 e.timeStampsToFile(stageFolder.getPath()+"\\"+outputFileName+"_"+e.getName()+".txt");
@@ -230,7 +251,7 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
                                                     "compatible=mo.analysis.NotesRecorder",
                                                     "captureFile="+this.organizationLocation.getPath()+"\\"+ this.participant.folder+ "\\capture\\"+ analysis.getVideoName());
             }
-        }        
+        }    */    
         
     }
 
@@ -267,7 +288,7 @@ public class KairosFacialAnalysisConfig implements IndividualAnalysisConfigurati
 
     @Override
     public Playable getPlayer() {
-        if(this.player == null){this.player = new KairosFaPlayer(this.files.get(0)); }
+        if(this.player == null){this.player = new FacialAnalysisPlayer(this.analyser, this.files.get(0)); }
         return this.player;
     }
     

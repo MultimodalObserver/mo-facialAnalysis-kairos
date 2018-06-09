@@ -22,6 +22,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,13 +49,13 @@ import org.json.JSONObject;
  */
 public class KairosAnalyser extends FacialAnalyser {
 
-    public KairosAnalyser(String urlBase, String app_id, String app_key){
-        
+    public KairosAnalyser(String urlBase, String app_id, String app_key) {
+
         this.userAlias = "app_id";
         this.keyAlias = "app_key";
         this.urlBase = urlBase;
         this.user = app_id;
-        this.key = app_key; 
+        this.key = app_key;
     }
 
     public String getUser() {
@@ -64,77 +65,75 @@ public class KairosAnalyser extends FacialAnalyser {
     public String getKey() {
         return key;
     }
-    
-    
-    
+
     @Override
     public FacialAnalysis uploadVideo(String urlOrPath) {
 
-        FacialAnalysis analysis= new FacialAnalysis();
-    
+        FacialAnalysis analysis = new FacialAnalysis();
+
         CloseableHttpClient httpclient = HttpClients.createDefault();
         File file = new File(urlOrPath);
-        
 
         // build multipart upload request
         HttpEntity data = MultipartEntityBuilder.create()
-                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
-                    .addBinaryBody("source", file, ContentType.DEFAULT_BINARY, file.getName())
-                    .build();
-        
+                .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+                .addBinaryBody("source", file, ContentType.DEFAULT_BINARY, file.getName())
+                .build();
+
         // build http request and assign multipart upload data
         HttpUriRequest request = RequestBuilder
-                    .post("https://api.kairos.com/v2/media")
-                    .setEntity(data)
-                    .build();
-        
+                .post("https://api.kairos.com/v2/media")
+                .setEntity(data)
+                .build();
+
         request.setHeader(this.userAlias, this.user);
-        request.setHeader(this.keyAlias,  this.key);
-        
-            // Create a custom response handler
-            ResponseHandler<String> responseHandler = response -> {
-                int status = response.getStatusLine().getStatusCode();
-                if (status >= 200 && status < 300) {
-                    HttpEntity entity = response.getEntity();
-                    return entity != null ? EntityUtils.toString(entity) : null;
-                } else {
-                   // throw new ClientProtocolException("Unexpected response status: " + status);
-                   System.out.println("error: "+status);
-                   return null;
-                }
-            };
+        request.setHeader(this.keyAlias, this.key);
+
+        // Create a custom response handler
+        ResponseHandler<String> responseHandler = response -> {
+            int status = response.getStatusLine().getStatusCode();
+            if (status >= 200 && status < 300) {
+                HttpEntity entity = response.getEntity();
+                return entity != null ? EntityUtils.toString(entity) : null;
+            } else {
+                // throw new ClientProtocolException("Unexpected response status: " + status);
+                System.out.println("error: " + status);
+                return null;
+            }
+        };
         try {
-            
+
             String responseBody;
             responseBody = httpclient.execute(request, responseHandler);
             System.out.println(responseBody);
-            
+
             JSONObject jsonBody = new JSONObject(responseBody);
             System.out.println(responseBody);
-            
-            analysis.setId(jsonBody.getString("id"));
-            
-                String path = analysis.getVideoPath();
-                String timePath =  path.substring(0,path.lastIndexOf(".")) + "-temp.txt";
-                String cadena;
 
-                FileReader f;
+            analysis.setId(jsonBody.getString("id"));
+
+            String path = analysis.getVideoPath();
+            String timePath = path.substring(0, path.lastIndexOf(".")) + "-temp.txt";
+            String cadena;
+
+            FileReader f;
+            try {
+                f = new FileReader(timePath);
+                BufferedReader b = new BufferedReader(f);
                 try {
-                    f = new FileReader(timePath);
-                    BufferedReader b = new BufferedReader(f);
-                    try {
-                        if((cadena=b.readLine())!=null){
-                            analysis.setStart(Long.parseLong(cadena));
-                        }if((cadena=b.readLine())!=null){
-                            analysis.setEnd(Long.parseLong(cadena));
-                        }  
-                        b.close();
-                    } catch (IOException ex) {
-                        logger.log(Level.SEVERE, null, ex);
+                    if ((cadena = b.readLine()) != null) {
+                        analysis.setStart(Long.parseLong(cadena));
                     }
-                } catch (FileNotFoundException ex) {
+                    if ((cadena = b.readLine()) != null) {
+                        analysis.setEnd(Long.parseLong(cadena));
+                    }
+                    b.close();
+                } catch (IOException ex) {
                     logger.log(Level.SEVERE, null, ex);
-                } 
+                }
+            } catch (FileNotFoundException ex) {
+                logger.log(Level.SEVERE, null, ex);
+            }
             analysis.setStatus("Analyzing");
             return analysis;
 
@@ -147,78 +146,78 @@ public class KairosAnalyser extends FacialAnalyser {
 
     @Override
     public FacialAnalysis uploadVideo(File file) {
-        
-        FacialAnalysis analysis= new FacialAnalysis();
+
+        FacialAnalysis analysis = new FacialAnalysis();
         CloseableHttpClient httpclient = HttpClients.createDefault();
-        
+
         analysis.setVideoName(file.getName());
         analysis.setVideoPath(file.getPath());
-        
+
         // build multipart upload request
         HttpEntity data = MultipartEntityBuilder.create()
-                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
-                    .addBinaryBody("source", file, ContentType.DEFAULT_BINARY, file.getName())
-                    .build();
-        
+                .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+                .addBinaryBody("source", file, ContentType.DEFAULT_BINARY, file.getName())
+                .build();
+
         // build http request and assign multipart upload data
         HttpUriRequest request = RequestBuilder
-                    .post(this.urlBase)
-                    .setEntity(data)
-                    .build();
-        
+                .post(this.urlBase)
+                .setEntity(data)
+                .build();
+
         request.setHeader(this.userAlias, this.user);
         request.setHeader(this.keyAlias, this.key);
-        
+
         // Create a custom response handler
         ResponseHandler<String> responseHandler = response -> {
-                int status = response.getStatusLine().getStatusCode();
-                if (status >= 200 && status < 300) {
-                    HttpEntity entity = response.getEntity();
-                    return entity != null ? EntityUtils.toString(entity) : null;
-                } else {
-                   // throw new ClientProtocolException("Unexpected response status: " + status);
-                   System.out.println("error: "+status);
-                   return null;
-                }
-            };
+            int status = response.getStatusLine().getStatusCode();
+            if (status >= 200 && status < 300) {
+                HttpEntity entity = response.getEntity();
+                return entity != null ? EntityUtils.toString(entity) : null;
+            } else {
+                // throw new ClientProtocolException("Unexpected response status: " + status);
+                System.out.println("error: " + status);
+                return null;
+            }
+        };
         try {
-            
+
             String responseBody;
             responseBody = httpclient.execute(request, responseHandler);
             JSONObject jsonBody = new JSONObject(responseBody);
-            
-            analysis.setId(jsonBody.getString("id"));
-            
-                String path = analysis.getVideoPath();
-                String timePath =  path.substring(0,path.lastIndexOf(".")) + "-temp.txt";
-                String cadena;
 
-                FileReader f;
+            analysis.setId(jsonBody.getString("id"));
+
+            String path = analysis.getVideoPath();
+            String timePath = path.substring(0, path.lastIndexOf(".")) + "-temp.txt";
+            String cadena;
+
+            FileReader f;
+            try {
+                f = new FileReader(timePath);
+                BufferedReader b = new BufferedReader(f);
                 try {
-                    f = new FileReader(timePath);
-                    BufferedReader b = new BufferedReader(f);
-                    try {
-                        if((cadena=b.readLine())!=null){
-                            analysis.setStart(Long.parseLong(cadena));
-                        }if((cadena=b.readLine())!=null){
-                            analysis.setEnd(Long.parseLong(cadena));
-                        }  
-                        b.close();
-                    } catch (IOException ex) {
-                        logger.log(Level.SEVERE, null, ex);
+                    if ((cadena = b.readLine()) != null) {
+                        analysis.setStart(Long.parseLong(cadena));
                     }
-                } catch (FileNotFoundException ex) {
+                    if ((cadena = b.readLine()) != null) {
+                        analysis.setEnd(Long.parseLong(cadena));
+                    }
+                    b.close();
+                } catch (IOException ex) {
                     logger.log(Level.SEVERE, null, ex);
-                }             
-            
+                }
+            } catch (FileNotFoundException ex) {
+                logger.log(Level.SEVERE, null, ex);
+            }
+
             analysis.setStatus("Analizing");
             return analysis;
 
-
         } catch (IOException ex) {
             Logger.getLogger(KairosAnalyser.class.getName()).log(Level.SEVERE, null, ex);
-        }        
- 
+        }
+
         return analysis;
     }
 
@@ -229,99 +228,114 @@ public class KairosAnalyser extends FacialAnalyser {
 
     @Override
     public Future<FacialAnalysis> uploadVideoAsync(File file) {
-         ExecutorService executor = Executors.newFixedThreadPool(1);
-         return executor.submit(new KairosAsync(this,"uploadVideo",file));
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        return executor.submit(new KairosAsync(this, "uploadVideo", file));
     }
 
     @Override
     public FacialAnalysis update(FacialAnalysis analysis) {
-                
+
         try {
-            HttpResponse<JsonNode>
-             response = Unirest.get(this.urlBase+"/"+analysis.getId())
-                    .header(this.userAlias, this.user).header(this.keyAlias , this.key)
+            HttpResponse<JsonNode> response = Unirest.get(this.urlBase + "/" + analysis.getId())
+                    .header(this.userAlias, this.user).header(this.keyAlias, this.key)
                     .asJson();
-              
-            String status= response.getBody().getObject().getString("status_message");
+
+            String status = response.getBody().getObject().getString("status_message");
             analysis.setStatus(status);
             analysis.setOriginalBody(response);
-            
-            if(!status.equals("Analyzing")){
-                                 
-                analysis.addPerson(new Person("anger","disgust","fear","joy","sadness","surprise"));
-            
-                for(int i=0; i<response.getBody().getObject().getJSONArray("frames").length(); i++){
+
+            if (!status.equals("Analyzing")) {
+
+                ResourceBundle bundle = java.util.ResourceBundle.getBundle("i18n/mo/analysis/facialPlugin/kairos/emotionsKairosNameTranslations"); // NOI18N  
+
+                //analysis.addPerson(new Person("anger","disgust","fear","joy","sadness","surprise"));
+                analysis.addPerson(new Person(bundle.getString("anger"),
+                        bundle.getString("disgust"),
+                        bundle.getString("fear"),
+                        bundle.getString("joy"),
+                        bundle.getString("sadness"),
+                        bundle.getString("surprise")));
+
+                for (int i = 0; i < response.getBody().getObject().getJSONArray("frames").length(); i++) {
 
                     JSONObject emotions = response.getBody().getObject().getJSONArray("frames").getJSONObject(i).getJSONArray("people").getJSONObject(0).getJSONObject("emotions");
                     Double time = response.getBody().getObject().getJSONArray("frames").getJSONObject(i).getDouble("time");
-                    analysis.getPerson(0).getEmotion(0).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("anger")/100));
-                    analysis.getPerson(0).getEmotion(1).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("disgust")/100));
-                    analysis.getPerson(0).getEmotion(2).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("fear")/100));
-                    analysis.getPerson(0).getEmotion(3).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("joy")/100));
-                    analysis.getPerson(0).getEmotion(4).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("sadness")/100));
-                    analysis.getPerson(0).getEmotion(5).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("surprise")/100));
+                    analysis.getPerson(0).getEmotion(0).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("anger") / 100));
+                    analysis.getPerson(0).getEmotion(1).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("disgust") / 100));
+                    analysis.getPerson(0).getEmotion(2).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("fear") / 100));
+                    analysis.getPerson(0).getEmotion(3).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("joy") / 100));
+                    analysis.getPerson(0).getEmotion(4).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("sadness") / 100));
+                    analysis.getPerson(0).getEmotion(5).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("surprise") / 100));
                 }
             }
-            
+
         } catch (UnirestException ex) {
             Logger.getLogger(KairosAnalyser.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
         }
-        
+
         return analysis;
     }
 
     @Override
     public Future<FacialAnalysis> updateAsync(FacialAnalysis analysis) {
-         ExecutorService executor = Executors.newFixedThreadPool(1);
-         return executor.submit(new KairosAsync(this,"update",analysis));      }
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        return executor.submit(new KairosAsync(this, "update", analysis));
+    }
 
     @Override
     public FacialAnalysis analysisFromFile(String jsonPath) {
-        
+
         FacialAnalysis analysis = new FacialAnalysis();
-        analysis.addPerson(new Person("anger","disgust","fear","joy","sadness","surprise"));
-        
+        //analysis.addPerson(new Person("anger","disgust","fear","joy","sadness","surprise"));
+        ResourceBundle bundle = java.util.ResourceBundle.getBundle("i18n/mo/analysis/facialPlugin/kairos/emotionsKairosNameTranslations"); // NOI18N  
+        analysis.addPerson(new Person(bundle.getString("anger"),
+                bundle.getString("disgust"),
+                bundle.getString("fear"),
+                bundle.getString("joy"),
+                bundle.getString("sadness"),
+                bundle.getString("surprise")));
+
         FileReader fr;
         try {
-           
-            
+
             fr = new FileReader(jsonPath);
-                BufferedReader br = new BufferedReader(fr);
-                JSONObject jsonSource =  new JSONObject(br.readLine());
-                
-                if(jsonSource.getString("status").equals("incomplete")||jsonSource.getString("status").equals("En linea")){
-                    FacialAnalysis a = new FacialAnalysis(this,jsonSource.getString("id"),jsonSource.getString("videoName"),jsonSource.getString("status"));
-                    a.setVideoPath(jsonSource.getString("videoPath"));
-                    a.setStart(jsonSource.getLong("startUnix"));
-                    a.setEnd(jsonSource.getLong("endUnix"));
-                    
-                    return a;
-                    
-                }else{
-                
+            BufferedReader br = new BufferedReader(fr);
+            JSONObject jsonSource = new JSONObject(br.readLine());
+
+            if (jsonSource.getString("status").equals("incomplete") || jsonSource.getString("status").equals("En linea")) {
+                FacialAnalysis a = new FacialAnalysis(this, jsonSource.getString("id"), jsonSource.getString("videoName"), jsonSource.getString("status"));
+                a.setVideoPath(jsonSource.getString("videoPath"));
+                a.setStart(jsonSource.getLong("startUnix"));
+                a.setEnd(jsonSource.getLong("endUnix"));
+
+                return a;
+
+            } else {
+
                 analysis.setVideoPath(jsonSource.getString("videoPath"));
-                analysis.setStart(jsonSource.getLong("startUnix"));            
-                analysis.setEnd(jsonSource.getLong("endUnix"));                    
-                    
-                JSONArray frames = jsonSource.getJSONArray("frames");                        
-                for(int i=0; i<frames.length(); i++){
+                analysis.setStart(jsonSource.getLong("startUnix"));
+                analysis.setEnd(jsonSource.getLong("endUnix"));
+
+                JSONArray frames = jsonSource.getJSONArray("frames");
+                for (int i = 0; i < frames.length(); i++) {
 
                     JSONObject emotions = frames.getJSONObject(i).getJSONArray("people").getJSONObject(0).getJSONObject("emotions");
                     Double time = frames.getJSONObject(i).getDouble("time");
-                    analysis.getPerson(0).getEmotion(0).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("anger")/100));
-                    analysis.getPerson(0).getEmotion(1).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("disgust")/100));
-                    analysis.getPerson(0).getEmotion(2).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("fear")/100));
-                    analysis.getPerson(0).getEmotion(3).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("joy")/100));
-                    analysis.getPerson(0).getEmotion(4).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("sadness")/100));
-                    analysis.getPerson(0).getEmotion(5).addInstant(new Instant(time.longValue()+analysis.getStart(),emotions.getDouble("surprise")/100));
-                }                
+                    analysis.getPerson(0).getEmotion(0).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("anger") / 100));
+                    analysis.getPerson(0).getEmotion(1).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("disgust") / 100));
+                    analysis.getPerson(0).getEmotion(2).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("fear") / 100));
+                    analysis.getPerson(0).getEmotion(3).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("joy") / 100));
+                    analysis.getPerson(0).getEmotion(4).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("sadness") / 100));
+                    analysis.getPerson(0).getEmotion(5).addInstant(new Instant(time.longValue() + analysis.getStart(), emotions.getDouble("surprise") / 100));
                 }
-              
-        }catch(org.json.JSONException ex){
-                   System.out.println("incompatible json");
-                    //Logger.getLogger(KairosAnalyser.class.getName()).log(Level.SEVERE, null, ex);
-                    return null;
-                
+            }
+
+        } catch (org.json.JSONException ex) {
+            System.out.println("incompatible json");
+            //Logger.getLogger(KairosAnalyser.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+
         } catch (FileNotFoundException ex) {
             Logger.getLogger(KairosAnalyser.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -334,79 +348,75 @@ public class KairosAnalyser extends FacialAnalyser {
     @Override
     public boolean analysisToFile(FacialAnalysis analysis, String path) {
 
+        if ((analysis.getStatus().equals("Complete") || analysis.getStatus().equals("Completado"))
+                && analysis.getOriginalBody() != null) {
 
-        if((analysis.getStatus().equals("Complete")||analysis.getStatus().equals("Completado"))&&
-           analysis.getOriginalBody()!=null){
-  
-                FileWriter output = null;
-                BufferedWriter bw = null;
+            FileWriter output = null;
+            BufferedWriter bw = null;
 
-                try
-                {
-                    output = new FileWriter(path);
-                    bw = new BufferedWriter(output);
+            try {
+                output = new FileWriter(path);
+                bw = new BufferedWriter(output);
 
-                    JSONObject outputJson = new JSONObject(analysis.getOriginalBody().getBody().toString());
-                    outputJson.put("videoName", analysis.getVideoName());
-                    outputJson.put("id", analysis.getId());
-                    outputJson.put("videoPath", analysis.getVideoPath());
-                    outputJson.put("startUnix", analysis.getStart());
-                    outputJson.put("endUnix", analysis.getEnd());
-                    outputJson.put("status", analysis.getStatus());
+                JSONObject outputJson = new JSONObject(analysis.getOriginalBody().getBody().toString());
+                outputJson.put("videoName", analysis.getVideoName());
+                outputJson.put("id", analysis.getId());
+                outputJson.put("videoPath", analysis.getVideoPath());
+                outputJson.put("startUnix", analysis.getStart());
+                outputJson.put("endUnix", analysis.getEnd());
+                outputJson.put("status", analysis.getStatus());
 
-                    
-                    FileDescription desc = new FileDescription(new File(path), this.getClass().getName()+".complete");
-                    bw.write(outputJson.toString());
-                    System.out.println("file saved in: " + path );
+                FileDescription desc = new FileDescription(new File(path), this.getClass().getName() + ".complete");
+                bw.write(outputJson.toString());
+                System.out.println("file saved in: " + path);
 
+                bw.close();
 
-                    bw.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                try {
 
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    if (null != output) {
+                        output.close();
+                    }
+                    return true;
+
+                } catch (Exception e2) {
+                    e2.printStackTrace();
                     return false;
-                } finally {
-                   try {
-
-                   if (null != output){
-                      output.close();}
-                      return true;
-
-                   } catch (Exception e2) {
-                      e2.printStackTrace();
-                      return false;
-                   }
-                }        
-        }else{
-            
-              JSONObject jsonOutput = new JSONObject();
-              jsonOutput.put("videoName", analysis.getVideoName());
-                        jsonOutput.put("id", analysis.getId());
-                        jsonOutput.put("status", analysis.getStatus());
-                        jsonOutput.put("videoPath", analysis.getVideoPath());
-                        jsonOutput.put("startUnix", analysis.getStart());
-                        jsonOutput.put("endUnix", analysis.getEnd());                           
-
-             try
-               {
-                 FileWriter output = new FileWriter(path);
-                 System.out.println("file saved in: " + path );
-
-                 BufferedWriter writer = new BufferedWriter(output);
-                 FileDescription desc = new FileDescription(new File(path), this.getClass().getName()+".incomplete");
-
-                 writer.write(jsonOutput.toString());
-                 writer.close();
-                 output.close();
-                 
-                 return true;
-
-                } catch (Exception e) {
-                 e.printStackTrace();
-                 return false;
                 }
+            }
+        } else {
+
+            JSONObject jsonOutput = new JSONObject();
+            jsonOutput.put("videoName", analysis.getVideoName());
+            jsonOutput.put("id", analysis.getId());
+            jsonOutput.put("status", analysis.getStatus());
+            jsonOutput.put("videoPath", analysis.getVideoPath());
+            jsonOutput.put("startUnix", analysis.getStart());
+            jsonOutput.put("endUnix", analysis.getEnd());
+
+            try {
+                FileWriter output = new FileWriter(path);
+                System.out.println("file saved in: " + path);
+
+                BufferedWriter writer = new BufferedWriter(output);
+                FileDescription desc = new FileDescription(new File(path), this.getClass().getName() + ".incomplete");
+
+                writer.write(jsonOutput.toString());
+                writer.close();
+                output.close();
+
+                return true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
         }
 
     }
-    
+
 }
